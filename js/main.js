@@ -9,7 +9,6 @@
   /* ── Configuração ────────────────────────────────────────────────────── */
   const CONFIG = {
     whatsapp: '5511925483835',
-    pixelId: '',          // ID do Meta Pixel. Vazio = nenhum cookie, nenhum banner.
     exitIntent: true,     // janela de saída (só desktop, 1x por sessão)
     exitDelayMs: 8000,    // não aparece antes disso
     quizPopupMs: 10000,   // popup do Raio-X: 10s depois de abrir a página (0 = desliga)
@@ -25,10 +24,10 @@
   };
 
   /* ── Medição ─────────────────────────────────────────────────────────── */
-  const STANDARD = { Lead: 1, Contact: 1, ViewContent: 1 };
+  // Só o dataLayer. Quem decide o que vai para a Meta é o GTM (GTM-N9LWK7B2):
+  // chamar fbq() aqui também faria cada evento chegar duas vezes.
   function track(name, params = {}) {
     try {
-      if (window.fbq) STANDARD[name] ? fbq('track', name, params) : fbq('trackCustom', name, params);
       (window.dataLayer = window.dataLayer || []).push({ event: name, ...params });
     } catch { /* medição nunca quebra a página */ }
   }
@@ -79,9 +78,17 @@
     $$('[data-wa]').forEach((a) => { a.href = waUrl(a.dataset.wa); });
     document.addEventListener('click', (e) => {
       const wa = e.target.closest('a[href*="wa.me"]');
-      if (wa) { track('Contact', { origem: wa.dataset.track || 'whatsapp', item: wa.dataset.label || '' }); store.set('qz-wa', '1', sessionStorage); return; }
+      if (wa) {
+        // Envio do diagnóstico do Raio-X = lead quente; qualquer outro WhatsApp = lead frio.
+        if (wa.dataset.track === 'quiz_whatsapp') track('raiox_envio', { area: wa.dataset.label || '', equipe: wa.dataset.equipe || '', faturamento: wa.dataset.fat || '' });
+        else track('wa_click', { origem: wa.dataset.track || 'whatsapp', item: wa.dataset.label || '' });
+        store.set('qz-wa', '1', sessionStorage);
+        return;
+      }
       const t = e.target.closest('[data-track]');
-      if (t) track('cta_click', { origem: t.dataset.track });
+      if (!t) return;
+      if (t.dataset.track === 'livro_compra') track('livro_compra', { item: t.dataset.label || '' });
+      else track('cta_click', { origem: t.dataset.track });
     });
   }
 
@@ -313,7 +320,7 @@
     $$('[data-video]').forEach((b) => b.addEventListener('click', () => {
       m.open();
       video.play().catch(() => {});
-      track('ViewContent', { content_name: 'video_como_ajudamos' });
+      track('video_play', { content_name: 'video_como_ajudamos' });
     }));
     video.addEventListener('ended', () => track('video_fim'));
   }
@@ -389,24 +396,14 @@
     });
   }
 
-  /* ── Consentimento + Meta Pixel ──────────────────────────────────────── */
-  function loadPixel() {
-    if (!CONFIG.pixelId || window.fbq) return;
-    /* eslint-disable */
-    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-    /* eslint-enable */
-    fbq('init', CONFIG.pixelId);
-    fbq('track', 'PageView');
-  }
+  /* ── Aviso de cookies (informativo) ─────────────────────────────────────
+     O Meta Pixel carrega pelo GTM, sem esperar clique. O aviso só informa
+     e some depois de "Entendi" (lembrado neste navegador).                 */
   function initConsent() {
-    if (!CONFIG.pixelId) return;
-    const choice = store.get('qz-consent');
-    if (choice === 'yes') return loadPixel();
-    if (choice === 'no') return;
+    if (store.get('qz-consent')) return;
     const bar = $('[data-consent]'); if (!bar) return;
     bar.hidden = false;
-    $('[data-consent-yes]', bar).addEventListener('click', () => { store.set('qz-consent', 'yes'); bar.hidden = true; loadPixel(); });
-    $('[data-consent-no]', bar).addEventListener('click', () => { store.set('qz-consent', 'no'); bar.hidden = true; });
+    $('[data-consent-ok]', bar).addEventListener('click', () => { store.set('qz-consent', 'ok'); bar.hidden = true; });
   }
 
   /* ══ RAIO-X ═══════════════════════════════════════════════════════════
@@ -542,7 +539,7 @@
           <p class="result__next">${next}</p>
           ${soft}
           <div class="result__actions">
-            <a class="btn btn--gold btn--lg" href="${waUrl(msg)}" target="_blank" rel="noopener" data-track="quiz_whatsapp" data-label="${urgente ? 'urgente' : top}"><span>${cta}</span><svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+            <a class="btn btn--gold btn--lg" href="${waUrl(msg)}" target="_blank" rel="noopener" data-track="quiz_whatsapp" data-label="${urgente ? 'urgente' : clean ? 'sem_exposicao' : top}" data-equipe="${answers.equipe || ''}" data-fat="${answers.fat || ''}"><span>${cta}</span><svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></a>
             <button type="button" class="result__redo" data-redo>Refazer o Raio-X</button>
           </div>
         </div>`, (el) => {
@@ -551,7 +548,7 @@
         shine($('.btn--gold', el));
         $('[data-redo]', el).addEventListener('click', () => { Object.keys(answers).forEach((k) => delete answers[k]); idx = 0; busy = true; render(); });
       });
-      track('Lead', { content_name: 'raio_x', area: urgente ? 'urgente' : clean ? 'sem_exposicao' : top, equipe: answers.equipe, faturamento: answers.fat });
+      track('raiox_concluido', { content_name: 'raio_x', area: urgente ? 'urgente' : clean ? 'sem_exposicao' : top, equipe: answers.equipe, faturamento: answers.fat });
     }
 
     render();

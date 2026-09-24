@@ -14,7 +14,8 @@ Página única de captação de leads, construída a partir de `../ANALISE-CONCO
   python -m http.server 8765
   # abrir http://localhost:8765
   ```
-- Para publicar: subir a pasta inteira (menos `scripts/`) em qualquer hospedagem estática (Vercel, Netlify, Hostinger…).
+- Publicado na **Vercel** (projeto `quezada-lp`), ligado ao GitHub `tuka-junq/quezada-lp`: cada push na `main` publica sozinho.
+- Domínio: **https://quezadaconsultoria.com.br** (o `www` redireciona para ele). DNS no Registro.br: `A @ 76.76.21.21` e `CNAME www cname.vercel-dns.com`.
 
 ## Estrutura
 
@@ -110,7 +111,7 @@ O parâmetro `?angulo=` troca o título e o subtítulo do hero. Sem parâmetro, 
 | `bombeiro` | Você virou o bombeiro da sua própria empresa. Dá para sair disso. | dependência do dono (linguagem da categoria: "sair do operacional", PESQUISA §5.6.1) |
 | `cobranca` | Você entrega, fatura. E o dinheiro não entra? | inadimplência |
 
-Exemplo: `https://SEU-DOMINIO/?angulo=socio&utm_source=meta&utm_campaign=lead_socio&utm_content=AD01`
+Exemplo: `https://quezadaconsultoria.com.br/?angulo=socio&utm_source=meta&utm_campaign=lead_socio&utm_content=AD01`
 
 Se houver `utm_campaign`/`utm_content`, a mensagem do WhatsApp termina com `(ref.: campanha / anúncio)` — quem atende sabe de qual anúncio o lead veio.
 
@@ -139,7 +140,7 @@ Disparados para o Meta Pixel (se `pixelId` estiver preenchido e o visitante acei
 4. **Prazo de resposta no WhatsApp:** quem atende e em quanto tempo. Lead do Raio-X esfria em horas.
 5. **Política de privacidade:** o texto é rascunho — validar.
 6. **Meta Pixel:** preencher `pixelId` quando for ao ar.
-7. **Imagem de compartilhamento:** `og-quezada.webp` está em WEBP (pedido do projeto). Algumas plataformas (WhatsApp, LinkedIn) exibem melhor prévia com JPG/PNG — se a prévia do link não aparecer, gerar uma versão JPG só para o `og:image`.
+7. **Imagem de compartilhamento:** o `og:image` usa `og-quezada.jpg` (única imagem fora de WEBP, porque WhatsApp e LinkedIn nem sempre leem WEBP na prévia). Se trocar de domínio, atualizar `canonical`, `og:url` e `og:image` no `<head>`.
 8. **Ícone do iPhone:** o iOS não aceita WEBP no `apple-touch-icon`; se quiser o ícone ao "adicionar à tela inicial", incluir um PNG 180×180.
 9. **Mockup do relatório** (seção 6) é ilustrativo e está marcado assim na página. Quando houver um relatório real, trocar por uma imagem do sumário (anonimizado).
 

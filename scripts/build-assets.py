@@ -154,6 +154,8 @@ for line in ("Cresça com a empresa", "organizada e as costas", "protegidas."):
 draw.text((70, 470), "GESTÃO E JURÍDICO NO MESMO TIME", font=f_small, fill=(210, 185, 144))
 draw.text((70, 505), "QUEZADA · 100% ONLINE PARA TODO O BRASIL", font=f_small, fill=(170, 168, 160))
 save(og, "og-quezada.webp", 84)
+# JPG para a prévia de link (WhatsApp e alguns apps não leem webp)
+og.save(OUT_IMG / "og-quezada.jpg", "JPEG", quality=86, optimize=True, progressive=True)
 
 print("Fontes")
 for f in ("cormorant-garamond.woff2", "raleway.woff2"):

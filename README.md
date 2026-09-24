@@ -62,7 +62,7 @@ O vídeo (5,2 MB) **só baixa se a pessoa clicar em play**. Site institucional, 
 | 11 | **FAQ** (contador, **sócio quer sair**, advogado, porte, custo, burocracia, fora de SP, sigilo) | Berry + PESQUISA §3.2 (segmento "Societário em Ruptura") | Acordeão com altura animada |
 | 12 | **CTA final** — "Você já sabe que a empresa cresceu mais que a estrutura." | Berry (fechamento que assume a decisão) | Selo Q gira devagar com a rolagem |
 
-Extras: **popup do Raio-X** (ver abaixo), **barra fixa no celular** (Raio-X + WhatsApp, some no hero e no fim), **janela de saída** no desktop (1× por sessão, só depois de 8s e nunca para quem já clicou no WhatsApp), **modal de vídeo**, **aviso de cookies** (só aparece se houver Pixel configurado).
+Extras: **popup do Raio-X** (ver abaixo), **barra fixa no celular** (Raio-X + WhatsApp, some no hero e no fim), **janela de saída** no desktop (1× por sessão, só depois de 8s e nunca para quem já clicou no WhatsApp), **modal de vídeo**, **aviso de cookies** (informativo, some depois de "Entendi").
 
 ### Popup do Raio-X ("Cansado de…")
 
@@ -117,18 +117,32 @@ Se houver `utm_campaign`/`utm_content`, a mensagem do WhatsApp termina com `(ref
 
 ## Medição (eventos)
 
-Disparados para o Meta Pixel (se `pixelId` estiver preenchido e o visitante aceitar cookies) e para `dataLayer` (GTM).
+O `js/main.js` **só** empurra eventos para o `dataLayer`. Quem manda para a Meta é o GTM
+(**`GTM-N9LWK7B2`**, conta "GTM - Quezada"), pelo Pixel `1101830205873544` e pela API de
+Conversões (`api/evento.mjs`), com o mesmo `event_id` nos dois caminhos para a Meta deduplicar.
+**Não chame `fbq()` no main.js**: o evento chegaria duas vezes.
 
-| Evento | Quando | Tipo |
-|---|---|---|
-| `Contact` | Qualquer clique para o WhatsApp (`origem` = qual botão) | padrão Meta |
-| `Lead` | Raio-X concluído (`area`, `equipe`, `faturamento`) | padrão Meta — **otimizar campanhas por este** |
-| `ViewContent` | Play no vídeo | padrão Meta |
-| `quiz_inicio`, `quiz_passo` | Raio-X iniciado / cada resposta | personalizado |
-| `popup_raiox_exibido`, `popup_raiox_clique`, `popup_raiox_fechado` | popup do Raio-X | personalizado |
-| `aba_frente`, `faq`, `antes_depois`, `janela_saida`, `video_fim`, `cta_click` (inclui `livro_compra`) | interações | personalizado |
+| `dataLayer` | Quando | Vira na Meta | Caminho |
+|---|---|---|---|
+| (carregou) | Abriu a página | `PageView` | pixel |
+| `raiox_envio` (`area`, `equipe`, `faturamento`) | Clicou para enviar o diagnóstico do Raio-X pelo WhatsApp | **`Lead_Q`** (lead quente) | pixel + CAPI |
+| `wa_click` (`origem`, `item`) | Clicou em qualquer outro WhatsApp da página | **`Lead_F`** (lead frio) | pixel + CAPI |
+| `video_play` | Play no vídeo | `ViewContent` | pixel + CAPI |
+| `quiz_inicio` | Respondeu a 1ª pergunta do Raio-X | `RaioX_Inicio` | pixel |
+| `raiox_concluido` (`area`, `equipe`, `faturamento`) | Viu o resultado do Raio-X | `RaioX_Concluido` | pixel |
+| `livro_compra` (`item`) | Clicou para comprar um livro | `Livro_Compra` | pixel |
+| `quiz_passo`, `popup_raiox_*`, `aba_frente`, `faq`, `antes_depois`, `janela_saida`, `video_fim`, `cta_click` | interações | não vai para a Meta (fica no `dataLayer`) | — |
 
-> **Recomendação de campanha:** hoje as campanhas [TRÁFEGO] convertem 0,66% e as [LEAD] 2,6%. Com o evento `Lead` do Raio-X, otimize por ele em vez de clique.
+`Lead_Q` e `Lead_F` contam **no máximo 1 vez por sessão cada** (a trava fica na tag do GTM).
+São eventos personalizados: para otimizar campanha por eles, crie uma **conversão personalizada**
+no Gerenciador de Eventos a partir de cada um.
+
+O aviso de cookies é **informativo** (o pixel carrega sem esperar clique) e some depois de "Entendi".
+
+API de Conversões: variáveis `META_PIXEL_ID` e `META_CAPI_TOKEN` no projeto `quezada-lp` da Vercel.
+O endpoint só aceita origem `quezadaconsultoria.com.br` e os eventos da tabela acima.
+
+> **Recomendação de campanha:** hoje as campanhas [TRÁFEGO] convertem 0,66% e as [LEAD] 2,6%. Otimize pela conversão personalizada de `Lead_Q` (diagnóstico enviado); se o volume for baixo demais, use a de `Lead_F`.
 
 ---
 
@@ -139,7 +153,7 @@ Disparados para o Meta Pixel (se `pixelId` estiver preenchido e o visitante acei
 3. **Frases dos sócios:** as citações usadas são as frases-marca registradas em `QUEZADA.md` §4 — confirmar com Angelson e Fabiana.
 4. **Prazo de resposta no WhatsApp:** quem atende e em quanto tempo. Lead do Raio-X esfria em horas.
 5. **Política de privacidade:** o texto é rascunho — validar.
-6. **Meta Pixel:** preencher `pixelId` quando for ao ar.
+6. **Meta Pixel:** vem pelo GTM `GTM-N9LWK7B2` (ver Medição). Nada a preencher no `main.js`.
 7. **Imagem de compartilhamento:** o `og:image` usa `og-quezada.jpg` (única imagem fora de WEBP, porque WhatsApp e LinkedIn nem sempre leem WEBP na prévia). Se trocar de domínio, atualizar `canonical`, `og:url` e `og:image` no `<head>`.
 8. **Ícone do iPhone:** o iOS não aceita WEBP no `apple-touch-icon`; se quiser o ícone ao "adicionar à tela inicial", incluir um PNG 180×180.
 9. **Mockup do relatório** (seção 6) é ilustrativo e está marcado assim na página. Quando houver um relatório real, trocar por uma imagem do sumário (anonimizado).
